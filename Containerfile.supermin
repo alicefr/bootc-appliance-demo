@@ -1,0 +1,26 @@
+FROM quay.io/fedora/fedora:42 as builder
+
+COPY packages /packages
+RUN mkdir -p /output/appliance.d
+RUN dnf install -y supermin kernel kernel-modules qemu-img libguestfs guestfs-tools $(cat packages)
+COPY ./init /init
+RUN  supermin --use-installed --prepare $(cat packages) -o /tmp/supermin.d \
+ && chmod +x /init \
+ && tar zcf /tmp/supermin.d/init.tar.gz /init \
+ && supermin --build --use-installed --copy-kernel /tmp/supermin.d -f ext2 -o /output/appliance.d
+
+# Convert root appliance to qcow2 since podman doesn't support sparse files
+RUN mv /output/appliance.d/root /output/appliance.d/root.raw \
+	&& qemu-img convert -f raw -O qcow2 /output/appliance.d/root.raw /output/appliance.d/root \
+	&& rm /output/appliance.d/root.raw
+
+ENV LIBGUESTFS_BACKEND direct
+RUN virt-customize -a /output/appliance.d/root  --root-password "password:bootc" \
+	&& virt-customize -a /output/appliance.d/root --run-command "useradd bootc -m" \ 
+	&& virt-customize -a /output/appliance.d/root --password  'fedora:password:fedora' \
+	&& virt-customize -a /output/appliance.d/root --run-command "systemctl enable dbus-broker" \ 
+	&& virt-sparsify --in-place /output/appliance.d/root
+
+FROM scratch
+
+COPY --from=builder /output /output

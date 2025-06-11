@@ -21,9 +21,9 @@ RUN virt-customize -a /disk.img --install qemu-guest-agent,podman \
 	--run-command "mkdir -p /usr/lib/bootc/config" \
 	--run-command "echo \"config /usr/lib/bootc/config virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
 	--run-command "mkdir -p /usr/lib/bootc/storage" \
-	--run-command "echo \"storage /usr/lib/bootc/storage virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
+	--run-command "echo \"storage /usr/lib/bootc/containers virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
 	--run-command "mkdir -p /usr/lib/bootc/output" \
-	--run-command "echo \"output /var/lib/containers virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
+	--run-command "echo \"output /var/lib/bootc/output virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
 	--run-command "dnf clean all -y"  \
 	&& virt-sparsify --in-place /disk.img
 
