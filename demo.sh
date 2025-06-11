@@ -70,10 +70,13 @@ while ! podman -c $PODMAN_CONN info &> /dev/null ; do sleep 1; done
 podman -c $PODMAN_CONN images
 podman -c $PODMAN_CONN run --rm --privileged --pid=host \
 	-v /var/lib/containers:/var/lib/containers \
+	-v /usr/lib/bootc/storage:/var/lib/containers/storage \
 	-v /dev:/dev \
 	--security-opt label=type:unconfined_t \
 	-v /usr/lib/bootc/output:/output \
 	-v /usr/lib/bootc/config:/config \
 	$BOOTC_IMAGE \
-	bootc install to-disk /dev/disk/by-id/virtio-output
+	bootc install to-disk /dev/disk/by-id/virtio-output --wipe
+
+cleanup
 
