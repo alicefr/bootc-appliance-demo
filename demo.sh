@@ -1,9 +1,5 @@
 #!/bin/bash
 
-function cleanup() {
-	virsh undefine test && virsh destroy test
-}
-
 NAME=bootc-build
 DISK=$(pwd)/disk.img
 # Directory where the bootc artifacts will be stored
@@ -11,7 +7,7 @@ OUTPUT_DIR=$(pwd)/output
 OUTPUT=$OUTPUT_DIR/output.qcow2
 
 # Container storage
-STORAGE_DIR=$HOME/.local/share/containers
+STORAGE_DIR=$HOME/.local/share/containers/storage
 
 # Directory where to store the configuration for bootc
 CONFIG_DIR=$(pwd)/config
@@ -21,7 +17,10 @@ CID=3
 VMPORT=1234
 PODMAN_SOCK=/tmp/podman-vm.sock
 PODMAN_CONN=bootc-vm
-cleanup
+
+function cleanup() {
+	virsh undefine $NAME && virsh destroy $NAME || true
+}
 
 set -xe
 
@@ -38,8 +37,7 @@ qemu-img create -f qcow2 $OUTPUT 10G
 podman build --device /dev/kvm -t vm-disk .
 podman export $(podman create vm-disk /) |tar xvf -
 
-
-virsh destroy $NAME && virsh undefine $NAME
+cleanup
 /usr/bin/virt-install \
   --import \
   --virt-type kvm \
@@ -61,6 +59,7 @@ virsh destroy $NAME && virsh undefine $NAME
 
 # This can be removed once podman understand vsock
 rm -f $PODMAN_SOCK
+killall socat || true
 socat UNIX-LISTEN:$PODMAN_SOCK,fork VSOCK-CONNECT:3:$VMPORT &
 
 podman system connection add $PODMAN_CONN unix://$PODMAN_SOCK
@@ -68,6 +67,7 @@ podman system connection add $PODMAN_CONN unix://$PODMAN_SOCK
 # Wait until the VM boot
 while ! podman -c $PODMAN_CONN info &> /dev/null ; do sleep 1; done
 
+podman -c $PODMAN_CONN images
 podman -c $PODMAN_CONN run --rm --privileged --pid=host \
 	-v /var/lib/containers:/var/lib/containers \
 	-v /dev:/dev \
