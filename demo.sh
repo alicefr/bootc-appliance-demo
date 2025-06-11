@@ -11,7 +11,7 @@ STORAGE_DIR=$HOME/.local/share/containers/storage
 
 # Directory where to store the configuration for bootc
 CONFIG_DIR=$(pwd)/config
-BOOTC_IMAGE=quay.io/centos-bootc/centos-bootc:stream9
+BOOTC_IMAGE=demo:latest
 
 CID=3
 VMPORT=1234
@@ -27,7 +27,7 @@ set -xe
 mkdir -p $STORAGE_DIR
 mkdir -p $OUTPUT_DIR
 
-podman pull $BOOTC_IMAGE
+podman build -t $BOOTC_IMAGE -f Containerfile.example .
 
 # The output image where we install the OS with bootc
 rm -f $OUTPUT

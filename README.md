@@ -11,5 +11,5 @@ Run the demo:
 Verify the output image with a local VM:
 ```bash
 ./test-output.
-virsh console test-output
+vncviewer localhost$(virsh vncdisplay test-output)
 ```
