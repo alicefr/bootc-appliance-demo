@@ -14,16 +14,21 @@ RUN curl -L -O $URL/$IMAGE \
 	&& sha256sum --ignore-missing -c $CHECKSUM \
 	&& mv $IMAGE /disk.img
 
+COPY ./podman-vsock-proxy.service /podman-vsock-proxy.service
+RUN virt-copy-in -a /disk.img /podman-vsock-proxy.service /etc/systemd/system
+
 # Configuration of the guest image
-RUN virt-customize -a /disk.img --install qemu-guest-agent,podman \
-	--root-password password:test \
+RUN virt-customize -a /disk.img --install socat,podman \
+	--root-password password:bootc \
 	--run-command "sed -i 's/SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config" \
 	--run-command "mkdir -p /usr/lib/bootc/config" \
 	--run-command "echo \"config /usr/lib/bootc/config virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
-	--run-command "mkdir -p /usr/lib/bootc/storage" \
+	--run-command "mkdir -p /usr/lib/bootc/containers" \
 	--run-command "echo \"storage /usr/lib/bootc/containers virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
 	--run-command "mkdir -p /usr/lib/bootc/output" \
 	--run-command "echo \"output /var/lib/bootc/output virtiofs rw,relatime,nofail 0 0\" >> /etc/fstab" \
+	--run-command "systemctl enable podman.socket" \
+	--run-command "systemctl enable podman-vsock-proxy" \
 	--run-command "dnf clean all -y"  \
 	&& virt-sparsify --in-place /disk.img
 

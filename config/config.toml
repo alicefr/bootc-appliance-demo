@@ -2,3 +2,4 @@
 name = "alice"
 password = "bob"
 groups = ["wheel"]
+key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJDZLlnnc2LL5jvN1yvB2jHH2y/onoZAEc9vbGZ2AgJL test"
