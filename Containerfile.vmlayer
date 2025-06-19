@@ -1,0 +1,26 @@
+ARG BASE_IMAGE
+
+FROM ${BASE_IMAGE}
+
+RUN mkdir -p podman-vsock-proxy.service
+COPY podman-vsock-proxy.service /etc/systemd/system/podman-vsock-proxy.service
+COPY mount-vfsd-targets.service /etc/systemd/system/mount-vfsd-targets.service
+COPY mount-vfsd-targets.sh /usr/local/bin/mount-vfsd-targets.sh
+
+RUN dnf install -y socat && dnf clean all
+RUN sed -i 's/SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
+
+RUN echo 'u bootc - "Bootc User" /home/bootc /bin/bash' > /usr/lib/sysusers.d/bootc.conf \
+    && systemd-sysusers \
+	 && mkdir -p /etc/sudoers.d \
+	 && echo "bootc ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/bootc \
+	 && mkdir -p /var/home/bootc \
+	 && echo "bootc:bootc" |chpasswd \
+	 && echo "root:bootc" |chpasswd
+
+RUN systemctl enable podman.socket \
+	&& systemctl enable podman-vsock-proxy \
+	&& systemctl enable mount-vfsd-targets
+# Various possible paths for the container storage configuration, one of those should be valid
+RUN sed -i '/^additionalimagestores = \[/a\  \"/usr/lib/bootc/container_storage\",' /usr/share/containers/storage.conf \
+	||	sed -i '/^additionalimagestores = \[/a\  \"/usr/lib/bootc/container_storage\",' /etc/containers/storage.conf
