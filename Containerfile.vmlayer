@@ -2,7 +2,6 @@ ARG BASE_IMAGE
 
 FROM ${BASE_IMAGE}
 
-RUN mkdir -p podman-vsock-proxy.service
 COPY podman-vsock-proxy.service /etc/systemd/system/podman-vsock-proxy.service
 COPY mount-vfsd-targets.service /etc/systemd/system/mount-vfsd-targets.service
 COPY mount-vfsd-targets.sh /usr/local/bin/mount-vfsd-targets.sh
