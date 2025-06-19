@@ -1,0 +1,16 @@
+# Create a bootc image running rootless podman
+
+The `demo.sh` script builds a VM image with an environment for running podman remote using VSOCK and some predefined 
+mount points to facilitate the bootc builds. The VM image is an overlay on top of a dynamic bootc image in order to be 
+able to boot using the target kernel. 
+
+Run the demo:
+```bash
+./demo.sh
+```
+
+Verify the output image with a local VM:
+```bash
+./test-output.
+vncviewer localhost$(virsh vncdisplay test-output)
+```
