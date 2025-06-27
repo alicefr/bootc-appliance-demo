@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 VMNAME=bootc-vm
-CMDLINE="console=ttyS0 rootfstype=virtiofs root=root rw init=/sbin/init"
+CMDLINE="console=ttyS0 rootfstype=virtiofs root=root rw init=/sbin/init panic=1"
 CID=3
 VMPORT=1234
 PODMAN_SOCK=/var/run/podman/podman-vm.sock
@@ -12,29 +12,34 @@ dir=/bootc-data
 kernel=$(ls $dir/usr/lib/modules/*/vmlinuz)
 initrd=$(ls $dir/usr/lib/modules/*/initramfs.img)
 
+chroot /bootc-data systemctl enable mount-vfsd-targets
+chroot /bootc-data systemctl enable podman.socket
+entry='bootc::20266::::::'
+echo $entry >> /bootc-data/etc/shadow
 virsh destroy $VMNAME && virsh undefine $VMNAME
 
 set -e
 
 virt-install \
 	--connect qemu:///session \
-    --name $VMNAME \
+	--name $VMNAME \
 	 --os-variant generic \
-    --cpu host-model \
-    --vcpus 2 \
-    --memory 2048 \
-    --import \
+	--cpu host-model \
+	--vcpus 2 \
+	--memory 2048 \
+	--import \
 	 --boot kernel=${kernel},initrd=${initrd},cmdline="$CMDLINE" \
 	 --filesystem source=/bootc-data,target=root,$VFSD \
 	 --filesystem source=/usr/lib/bootc/output,target=output,$VFSD \
 	 --filesystem source=/usr/lib/bootc/config,target=config,$VFSD \
 	 --filesystem source=/usr/lib/bootc/container_storage,target=storage,$VFSD \
-    --disk path=$OUTPUT,format=qcow2,target=vdb,serial=output,bus=virtio \
-    --memorybacking=source.type=memfd,access.mode=shared \
-	 --graphics vnc,listen=0.0.0.0,port=5959 \
-	 --console unix,path=/var/run/console/console.sock,mode=bind \
-    --os-variant generic \
-    --vsock cid.address=$CID \
-	 --noautoconsole
+	--disk path=$OUTPUT,format=qcow2,target=vdb,serial=output,bus=virtio \
+	--memorybacking=source.type=memfd,access.mode=shared \
+	--graphics vnc,listen=0.0.0.0,port=5959 \
+	--console pty,target_type=serial \
+	--serial pty \
+	--os-variant generic \
+	--vsock cid.address=$CID \
+	--noautoconsole
 
-chmod 0777 /var/run/console/console.sock
+chmod 0777 ${OUTPUT}
